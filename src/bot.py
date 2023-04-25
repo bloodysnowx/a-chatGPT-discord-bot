@@ -2,6 +2,7 @@ import os
 import openai
 import asyncio
 import discord
+import textwrap
 from random import randrange
 from src.aclient import client
 from discord import app_commands
@@ -173,6 +174,51 @@ https://github.com/Zero6992/chatGPT-discord-bot""")
 
         logger.info(
             "\x1b[31mSomeone needs help!\x1b[0m")
+
+    @client.tree.command(name="ぼーっとしてた")
+    async def bootto(interaction: discord):
+        await interaction.response.defer(ephemeral=False)
+        await interaction.followup.send("人間なのにボーッとしてるんかーいｗｗｗｗｗｗ")
+    
+    @client.tree.command(name="bot")
+    async def bot(interaction: discord):
+        await interaction.response.defer(ephemeral=False)
+        await interaction.followup.send("ぼーっとしてましたｗｗｗｗｗｗ")
+
+    async def stable_diffusion_core(interaction: discord.Interaction, prompt_json):
+        if interaction.user == client.user:
+            return
+        
+        username = str(interaction.user)
+        channel = str(interaction.channel)
+        logger.info(
+            f"\x1b[31m{username}\x1b[0m : /stable-diffusion [{prompt_json}] in ({channel})")
+
+        await interaction.response.defer(thinking=True, ephemeral=client.isPrivate)
+        try:
+            path = await art.stable_diffusion_core(prompt_json)
+            file = discord.File(path, filename="image.png")
+            title = textwrap.shorten(f'> **{prompt_json["prompt"]}**', 200) + '\n\n'
+            embed = discord.Embed(title=title)
+            embed.set_image(url="attachment://image.png")
+            await interaction.followup.send(file=file, embed=embed)
+
+        except Exception as e:
+            await interaction.followup.send(
+                "> **ERROR: Something went wrong 😿**")
+            logger.exception(f"Error while generating image: {e}")
+
+    @client.tree.command(name="stable-diffusion", description="Generate an image with the Stable Diffusion")
+    async def stable_diffusion(interaction: discord.Interaction, *, prompt: str):
+        await stable_diffusion_core(interaction, art.create_rich_prompt(prompt))
+
+    @client.tree.command(name="stable-diffusion-raw", description="Generate an image with the Stable Diffusion")
+    async def stable_diffusion(interaction: discord.Interaction, *, prompt: str):
+        await stable_diffusion_core(interaction, art.create_simple_prompt(prompt))
+
+    @client.tree.command(name="stable-diffusion-safe", description="Generate an image with the Stable Diffusion")
+    async def stable_diffusion(interaction: discord.Interaction, *, prompt: str):
+        await stable_diffusion_core(interaction, art.create_safe_prompt(prompt))
 
     @client.tree.command(name="draw", description="Generate an image with the Dalle2 model")
     async def draw(interaction: discord.Interaction, *, prompt: str):
